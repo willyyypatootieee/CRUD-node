@@ -15,4 +15,10 @@ export class TaskRepository {
     const task = this.#tasks.get(id);
     return task ? { ...task } : undefined;
   }
+
+  create({ title }) {
+    const task = { id: this.#nextId++, title, done: false };
+    this.#tasks.set(task.id, task);
+    return { ...task };
+  }
 }
