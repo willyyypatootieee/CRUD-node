@@ -9,8 +9,11 @@ import { TaskController } from './controllers/TaskController.js';
 import { createTaskRouter } from './routes/taskRoutes.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { notFoundHandler } from './middleware/notFoundHandler.js';
+import { createUtilityRouter } from './routes/utilityRoutes.js';
 
-const specification = JSON.parse(readFileSync(new URL('./docs/openapi.json', import.meta.url), 'utf8'));
+const specification = JSON.parse(
+  readFileSync(new URL('./docs/openapi.json', import.meta.url), 'utf8'),
+);
 
 export function createApp({ initialTasks = seedTasks } = {}) {
   const app = express();
@@ -20,8 +23,10 @@ export function createApp({ initialTasks = seedTasks } = {}) {
   app.get('/openapi.json', (_req, res) => res.json(specification));
   app.use('/docs', swaggerUi.serve, swaggerUi.setup(specification));
   const repository = new TaskRepository(initialTasks);
-  const service = new TaskService(repository);
-  app.use('/tasks', createTaskRouter(new TaskController(service)));
+  const service = new TaskService(repository, initialTasks);
+  const controller = new TaskController(service);
+  app.use('/tasks', createTaskRouter(controller));
+  app.use(createUtilityRouter(controller));
   app.use(notFoundHandler);
   app.use(errorHandler);
   return app;
