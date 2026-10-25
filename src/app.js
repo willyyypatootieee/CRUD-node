@@ -1,4 +1,6 @@
 import express from 'express';
+import swaggerUi from 'swagger-ui-express';
+import { readFileSync } from 'node:fs';
 import { createRootRouter } from './routes/index.js';
 import { seedTasks } from './data/seedTasks.js';
 import { TaskRepository } from './repositories/TaskRepository.js';
@@ -8,11 +10,15 @@ import { createTaskRouter } from './routes/taskRoutes.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { notFoundHandler } from './middleware/notFoundHandler.js';
 
+const specification = JSON.parse(readFileSync(new URL('./docs/openapi.json', import.meta.url), 'utf8'));
+
 export function createApp({ initialTasks = seedTasks } = {}) {
   const app = express();
   app.disable('x-powered-by');
   app.use(express.json({ limit: '16kb' }));
   app.use(createRootRouter());
+  app.get('/openapi.json', (_req, res) => res.json(specification));
+  app.use('/docs', swaggerUi.serve, swaggerUi.setup(specification));
   const repository = new TaskRepository(initialTasks);
   const service = new TaskService(repository);
   app.use('/tasks', createTaskRouter(new TaskController(service)));

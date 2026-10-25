@@ -1,0 +1,96 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "TaskFlow API",
+    "version": "1.0.0",
+    "description": "In-memory task management. PUT accepts partial updates. Data is lost on restart."
+  },
+  "servers": [{ "url": "/" }],
+  "paths": {
+    "/": {
+      "get": {
+        "summary": "API metadata",
+        "responses": { "200": { "description": "Name, version and discovery links" } }
+      }
+    },
+    "/health": {
+      "get": {
+        "summary": "Health check",
+        "responses": { "200": { "description": "API is healthy" } }
+      }
+    },
+    "/tasks": {
+      "get": {
+        "summary": "List tasks",
+        "responses": {
+          "200": {
+            "description": "Tasks in insertion order",
+            "content": { "application/json": { "schema": { "type": "array", "items": { "$ref": "#/components/schemas/Task" } } } }
+          }
+        }
+      },
+      "post": {
+        "summary": "Create a task",
+        "description": "Title is trimmed. Extra fields are ignored; done always starts false.",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CreateTask" }, "example": { "title": "Buy milk" } } }
+        },
+        "responses": {
+          "201": { "description": "Created", "headers": { "Location": { "schema": { "type": "string" }, "description": "Created task path" } }, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Task" } } } },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "413": { "$ref": "#/components/responses/TooLarge" }
+        }
+      }
+    },
+    "/tasks/{id}": {
+      "parameters": [{ "$ref": "#/components/parameters/TaskId" }],
+      "get": {
+        "summary": "Get one task",
+        "responses": {
+          "200": { "$ref": "#/components/responses/Task" },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      },
+      "put": {
+        "summary": "Update title, done, or both",
+        "description": "Partial update: omitted fields are preserved. Extra fields are ignored. At least one recognized field is required.",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/UpdateTask" }, "example": { "title": "Buy groceries", "done": true } } } },
+        "responses": {
+          "200": { "$ref": "#/components/responses/Task" },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "413": { "$ref": "#/components/responses/TooLarge" }
+        }
+      },
+      "delete": {
+        "summary": "Delete a task",
+        "responses": {
+          "204": { "description": "Deleted; empty body" },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
+    "/docs": { "get": { "summary": "Interactive Swagger UI", "responses": { "200": { "description": "Swagger UI (redirects to /docs/)" } } } },
+    "/openapi.json": { "get": { "summary": "Download the API specification", "responses": { "200": { "description": "OpenAPI 3 JSON document" } } } }
+  },
+  "components": {
+    "parameters": {
+      "TaskId": { "name": "id", "in": "path", "required": true, "description": "Positive safe integer, no leading zeros", "schema": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 }, "example": 1 }
+    },
+    "schemas": {
+      "Task": { "type": "object", "required": ["id", "title", "done"], "properties": { "id": { "type": "integer", "minimum": 1, "readOnly": true }, "title": { "type": "string", "minLength": 1 }, "done": { "type": "boolean", "default": false } } },
+      "CreateTask": { "type": "object", "required": ["title"], "properties": { "title": { "type": "string", "minLength": 1, "pattern": "\\S", "description": "Non-empty after trimming" } } },
+      "UpdateTask": { "type": "object", "anyOf": [{ "required": ["title"] }, { "required": ["done"] }], "properties": { "title": { "type": "string", "minLength": 1, "pattern": "\\S" }, "done": { "type": "boolean" } } },
+      "Error": { "type": "object", "required": ["error"], "properties": { "error": { "type": "string" } } }
+    },
+    "responses": {
+      "Task": { "description": "Task", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Task" } } } },
+      "BadRequest": { "description": "Invalid body, query, ID, or malformed JSON", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" }, "example": { "error": "Title is required" } } } },
+      "NotFound": { "description": "Task does not exist", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" }, "example": { "error": "Task 99 not found" } } } },
+      "TooLarge": { "description": "JSON body exceeds 16kb", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
+    }
+  }
+}
