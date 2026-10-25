@@ -21,4 +21,16 @@ export class TaskRepository {
     this.#tasks.set(task.id, task);
     return { ...task };
   }
+
+  update(id, changes) {
+    const task = this.#tasks.get(id);
+    if (!task) return undefined;
+    const updated = { ...task, ...changes, id };
+    this.#tasks.set(id, updated);
+    return { ...updated };
+  }
+
+  delete(id) {
+    return this.#tasks.delete(id);
+  }
 }

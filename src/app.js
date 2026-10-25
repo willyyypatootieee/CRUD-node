@@ -6,6 +6,7 @@ import { TaskService } from './services/TaskService.js';
 import { TaskController } from './controllers/TaskController.js';
 import { createTaskRouter } from './routes/taskRoutes.js';
 import { errorHandler } from './middleware/errorHandler.js';
+import { notFoundHandler } from './middleware/notFoundHandler.js';
 
 export function createApp({ initialTasks = seedTasks } = {}) {
   const app = express();
@@ -15,6 +16,7 @@ export function createApp({ initialTasks = seedTasks } = {}) {
   const repository = new TaskRepository(initialTasks);
   const service = new TaskService(repository);
   app.use('/tasks', createTaskRouter(new TaskController(service)));
+  app.use(notFoundHandler);
   app.use(errorHandler);
   return app;
 }

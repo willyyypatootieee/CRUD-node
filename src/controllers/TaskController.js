@@ -15,4 +15,13 @@ export class TaskController {
     const task = this.taskService.createTask(req.body);
     res.location(`/tasks/${task.id}`).status(201).json(task);
   };
+
+  update = (req, res) => {
+    res.json(this.taskService.updateTask(req.params.id, req.body));
+  };
+
+  delete = (req, res) => {
+    this.taskService.deleteTask(req.params.id);
+    res.status(204).end();
+  };
 }

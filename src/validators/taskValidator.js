@@ -14,6 +14,20 @@ export function validateTitle(title) {
   return title.trim();
 }
 
+export function validateChanges(data) {
+  validateBody(data);
+  const changes = {};
+  if (Object.hasOwn(data, 'title')) changes.title = validateTitle(data.title);
+  if (Object.hasOwn(data, 'done')) {
+    if (typeof data.done !== 'boolean') throw new AppError('Done must be a Boolean');
+    changes.done = data.done;
+  }
+  if (!Object.keys(changes).length) {
+    throw new AppError('At least one of title or done is required');
+  }
+  return changes;
+}
+
 export function validateId(value) {
   if (!/^[1-9]\d*$/.test(String(value)) || !Number.isSafeInteger(Number(value))) {
     throw new AppError('Task ID must be a positive safe integer');

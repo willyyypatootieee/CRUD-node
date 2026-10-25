@@ -1,5 +1,5 @@
 import { AppError } from '../errors/AppError.js';
-import { validateBody, validateId, validateTitle } from '../validators/taskValidator.js';
+import { validateBody, validateChanges, validateId, validateTitle } from '../validators/taskValidator.js';
 
 export class TaskService {
   constructor(taskRepository) {
@@ -13,6 +13,18 @@ export class TaskService {
   createTask(data) {
     validateBody(data);
     return this.taskRepository.create({ title: validateTitle(data.title) });
+  }
+
+  updateTask(value, data) {
+    const id = validateId(value);
+    const changes = validateChanges(data);
+    this.getTaskById(id);
+    return this.taskRepository.update(id, changes);
+  }
+
+  deleteTask(value) {
+    const task = this.getTaskById(value);
+    this.taskRepository.delete(task.id);
   }
 
   getTaskById(value) {
