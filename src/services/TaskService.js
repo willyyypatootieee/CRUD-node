@@ -1,13 +1,44 @@
 import { AppError } from '../errors/AppError.js';
-import { validateBody, validateChanges, validateId, validateTitle } from '../validators/taskValidator.js';
+import {
+  validateBody,
+  validateChanges,
+  validateId,
+  validateTitle,
+  validateQuery,
+} from '../validators/taskValidator.js';
 
 export class TaskService {
-  constructor(taskRepository) {
+  constructor(taskRepository, initialTasks = []) {
     this.taskRepository = taskRepository;
+    this.initialTasks = initialTasks.map((task) => ({ ...task }));
   }
 
-  getAllTasks() {
-    return this.taskRepository.findAll();
+  getAllTasks(query = {}) {
+    const { done, search, limit, offset } = validateQuery(query);
+    const tasks = this.taskRepository.findAll().filter((task) => {
+      return (
+        (done === undefined || task.done === done) &&
+        (!search || task.title.toLowerCase().includes(search))
+      );
+    });
+    return tasks.slice(
+      offset,
+      limit === undefined ? undefined : offset + limit,
+    );
+  }
+
+  getStatistics() {
+    const tasks = this.taskRepository.findAll();
+    const completed = tasks.filter((task) => task.done).length;
+    return {
+      total: tasks.length,
+      completed,
+      pending: tasks.length - completed,
+    };
+  }
+
+  resetTasks() {
+    return this.taskRepository.reset(this.initialTasks);
   }
 
   createTask(data) {

@@ -6,7 +6,9 @@ if (!Number.isInteger(port) || port < 0 || port > 65535) {
 }
 
 const server = createApp().listen(port, () => {
-  console.log(`TaskFlow API listening on http://localhost:${server.address().port}`);
+  console.log(
+    `TaskFlow API listening on http://localhost:${server.address().port}`,
+  );
 });
 
 for (const signal of ['SIGINT', 'SIGTERM']) {

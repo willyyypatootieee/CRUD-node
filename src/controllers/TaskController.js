@@ -3,8 +3,8 @@ export class TaskController {
     this.taskService = taskService;
   }
 
-  getAll = (_req, res) => {
-    res.json(this.taskService.getAllTasks());
+  getAll = (req, res) => {
+    res.json(this.taskService.getAllTasks(req.query));
   };
 
   getById = (req, res) => {
@@ -23,5 +23,13 @@ export class TaskController {
   delete = (req, res) => {
     this.taskService.deleteTask(req.params.id);
     res.status(204).end();
+  };
+
+  getStatistics = (_req, res) => {
+    res.json(this.taskService.getStatistics());
+  };
+
+  reset = (_req, res) => {
+    res.json(this.taskService.resetTasks());
   };
 }

@@ -33,4 +33,14 @@ export class TaskRepository {
   delete(id) {
     return this.#tasks.delete(id);
   }
+
+  reset(initialTasks) {
+    this.#tasks = new Map(initialTasks.map((task) => [task.id, { ...task }]));
+    // Reset restores seeds, but must not recycle previously generated IDs.
+    this.#nextId = Math.max(
+      this.#nextId,
+      ...initialTasks.map((task) => task.id + 1),
+    );
+    return this.findAll();
+  }
 }
