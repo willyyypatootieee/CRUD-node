@@ -14,27 +14,11 @@ export class TaskService {
   }
 
   getAllTasks(query = {}) {
-    const { done, search, limit, offset } = validateQuery(query);
-    const tasks = this.taskRepository.findAll().filter((task) => {
-      return (
-        (done === undefined || task.done === done) &&
-        (!search || task.title.toLowerCase().includes(search))
-      );
-    });
-    return tasks.slice(
-      offset,
-      limit === undefined ? undefined : offset + limit,
-    );
+    return this.taskRepository.findAll(validateQuery(query));
   }
 
   getStatistics() {
-    const tasks = this.taskRepository.findAll();
-    const completed = tasks.filter((task) => task.done).length;
-    return {
-      total: tasks.length,
-      completed,
-      pending: tasks.length - completed,
-    };
+    return this.taskRepository.getStatistics();
   }
 
   resetTasks() {
