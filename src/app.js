@@ -16,16 +16,22 @@ const specification = JSON.parse(
   readFileSync(new URL('./docs/openapi.json', import.meta.url), 'utf8'),
 );
 
-export function createApp({ initialTasks = seedTasks, databasePath } = {}) {
+export function createApp({
+  initialTasks = seedTasks,
+  databasePath,
+  repository,
+} = {}) {
   const app = express();
   app.disable('x-powered-by');
   app.use(express.json({ limit: '16kb' }));
   app.use(createRootRouter());
   app.get('/openapi.json', (_req, res) => res.json(specification));
   app.use('/docs', swaggerUi.serve, swaggerUi.setup(specification));
-  const database = openDatabase({ databasePath, initialTasks });
-  app.locals.database = database;
-  const repository = new TaskRepository(database);
+  if (!repository) {
+    const database = openDatabase({ databasePath, initialTasks });
+    app.locals.database = database;
+    repository = new TaskRepository(database);
+  }
   const service = new TaskService(repository, initialTasks);
   const controller = new TaskController(service);
   app.use('/tasks', createTaskRouter(controller));

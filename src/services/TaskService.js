@@ -30,21 +30,24 @@ export class TaskService {
     return this.taskRepository.create({ title: validateTitle(data.title) });
   }
 
-  updateTask(value, data) {
+  async updateTask(value, data) {
     const id = validateId(value);
     const changes = validateChanges(data);
-    this.getTaskById(id);
-    return this.taskRepository.update(id, changes);
+    await this.getTaskById(id);
+    const task = await this.taskRepository.update(id, changes);
+    if (!task) throw new AppError(`Task ${id} not found`, 404);
+    return task;
   }
 
-  deleteTask(value) {
-    const task = this.getTaskById(value);
-    this.taskRepository.delete(task.id);
+  async deleteTask(value) {
+    const task = await this.getTaskById(value);
+    if (!(await this.taskRepository.delete(task.id)))
+      throw new AppError(`Task ${task.id} not found`, 404);
   }
 
-  getTaskById(value) {
+  async getTaskById(value) {
     const id = validateId(value);
-    const task = this.taskRepository.findById(id);
+    const task = await this.taskRepository.findById(id);
     if (!task) throw new AppError(`Task ${id} not found`, 404);
     return task;
   }
