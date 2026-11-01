@@ -1,7 +1,5 @@
 # TaskFlow API
 
-Persistent CRUD API for **FlyRank Internship · Backend Track · W3 A1 · Revision 1.1**.
-JavaScript, Express 5, better-sqlite3, SQLite, Python 3, and OpenAPI. Native Arch Linux / EndeavourOS development; no Docker, ORM, Python HTTP server, or external database service.
 
 ## Setup
 
@@ -136,15 +134,6 @@ python3 python/seed.py
 python3 python/explore_sql.py
 ```
 
-Initialization and seeding are idempotent; neither restores an existing empty task table. `init_db.py --database /absolute/path/tasks.db` overrides the file. Other utilities accept `DATABASE_PATH`. Exploration opens the file read-only and prints SQL plus actual results for five exercises:
-
-1. List all tasks: `SELECT id, title, done FROM tasks ORDER BY id`.
-2. Filter pending tasks: `SELECT id, title, done FROM tasks WHERE done = ?` with `0`.
-3. Search titles: `SELECT id, title, done FROM tasks WHERE title LIKE ?` with `%Swagger%`.
-4. Sort alphabetically: `SELECT id, title, done FROM tasks ORDER BY title`.
-5. Count total, completed, and pending tasks with `COUNT(*)` and conditional counts.
-
-The revised PRD does not enumerate its five required assignment queries. These five cover the stated operations; compare them with the original assignment before submission.
 
 ### Native inspection
 
@@ -179,25 +168,3 @@ npm run format:check
 HTTP regressions cover TC-01–TC-18, filtering, pagination, validation, atomic updates, statistics, reset, errors, and documentation. Each HTTP fixture explicitly uses an isolated in-memory SQLite database and closes it afterward. Disk tests cover restart persistence, empty-table persistence, durable IDs, schema constraints, configuration, SQL injection/literal wildcard handling, and concurrent Python/Node initialization. Python 3 is required for cross-runtime tests.
 
 `createApp()` defaults to persistent storage; callers own `app.locals.database` and must close it after stopping their server. Merely importing the module does not open a database or listener.
-
-## Assignment stages and publishing
-
-- Stage 0: automatic transactional database creation and one-time seeds.
-- Stage 1: SQL SELECT for list and individual reads.
-- Stage 2: prepared INSERT, preserving validation and HTTP 201.
-- Stage 3: prepared UPDATE/DELETE, preserving 404 behavior.
-- Stage 4: execute the five SQL exercises above; confirm against the original assignment.
-- Stage 5: run regression checks, capture the SQLite screenshot, review changes, and publish.
-
-Publishing requires review and GitHub credentials. No commit or push is performed automatically:
-
-```bash
-git status
-git remote -v
-# After reviewing and committing the intended source/documentation changes:
-git push -u origin HEAD
-```
-
-Do not commit database files or credentials. There is no authentication, authorization, rate limiting, or production deployment configuration; any reachable client can modify tasks or invoke reset. Keep this API in a trusted local environment.
-
-**This implementation is AI-assisted.** Prior stage commits do not establish compliance with any hand-built-work requirement. Review FlyRank's AI policy and complete any required independent work yourself. No independent comparison baseline is claimed.
