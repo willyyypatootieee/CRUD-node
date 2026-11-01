@@ -1,250 +1,174 @@
 # TaskFlow API
 
-A small REST API built around focused JavaScript classes, explicit validation, and in-memory storage. Created for **FlyRank Internship · Backend Development · Week 2 · Assignment A1**.
+Persistent CRUD API for **FlyRank Internship · Backend Track · W3 A1 · Revision 1.1**.
+JavaScript, Express 5, better-sqlite3, SQLite, Python 3, and OpenAPI. Native Arch Linux / EndeavourOS development; no Docker, ORM, Python HTTP server, or external database service.
 
-**Node.js · Express 5 · ES Modules · OpenAPI 3 · Native Node test runner**
+## Setup
 
-## Quick start
-
-Requires **Node.js 22 or newer (a supported LTS release recommended)**, npm, and optionally Git and curl.
-
-From the project directory:
+Requires Node.js 22 or newer (supported LTS recommended), npm, Python 3, and the native SQLite CLI. The target SQLite version is **3.54**. Python includes `sqlite3`; do not install it with pip. The Node driver bundles its own SQLite version, independent of the system CLI and Python library.
 
 ```bash
+sqlite3 --version
+python3 -c 'import sqlite3; print(sqlite3.sqlite_version)'
 npm ci
 npm start
 ```
 
+The dependency is already declared; `npm install better-sqlite3` installs it when adapting an older checkout. A native driver build may require Arch's `base-devel` and Python if a prebuilt binary is unavailable.
+
 - API: <http://localhost:3000>
-- Interactive documentation: <http://localhost:3000/docs>
-- OpenAPI JSON: <http://localhost:3000/openapi.json>
-- Health check: <http://localhost:3000/health>
+- Swagger UI: <http://localhost:3000/docs>
+- OpenAPI: <http://localhost:3000/openapi.json>
+- Health: <http://localhost:3000/health>
 
-No environment file, database, credentials, build step, or external service is needed. `npm install` also works; `npm ci` uses the committed lockfile. Set a different port with `PORT=4000 npm start` on Linux/macOS. Stop with `Ctrl+C`.
+Startup creates `data/tasks.db`, its schema, and three sample tasks once. Changes survive restarts, including deletion of every task. An empty database file created manually before startup is safe. No Python startup command is required.
 
-## Commands
-
-| Command                | Purpose                                                    |
-| ---------------------- | ---------------------------------------------------------- |
-| `npm start`            | Start the HTTP server                                      |
-| `npm run dev`          | Restart automatically when source files change             |
-| `npm test`             | Run isolated integration tests with Node's built-in runner |
-| `npm run lint`         | Check JavaScript with ESLint                               |
-| `npm run format`       | Format the project with Prettier                           |
-| `npm run format:check` | Verify formatting without changing files                   |
+`PORT=4000 npm start` changes the port. `DATABASE_PATH=/absolute/path/tasks.db npm start` selects another file. Node and Python default to the same project-relative file regardless of the shell's working directory; use the same absolute override for both. Stop with Ctrl+C; the server closes its database after draining requests.
 
 ## Architecture
 
-```mermaid
-flowchart TD
-    Client["curl / Swagger UI / HTTP client"] --> Middleware["Express: JSON parser + router"]
-    Middleware --> Controller["TaskController: HTTP input and responses"]
-    Controller --> Service["TaskService: validation and business rules"]
-    Service --> Validator["Pure validation functions"]
-    Service --> Repository["TaskRepository: CRUD and ID generation"]
-    Repository --> Storage["Private Map and monotonic ID counter"]
-    Middleware -. errors .-> Errors["Central JSON error handler"]
-    Controller -. errors .-> Errors
-    Service -. errors .-> Errors
+```text
+HTTP -> Express routes -> TaskController -> TaskService -> TaskRepository -> SQLite
+Python initialization / seeding / SQL exploration ------------------------> SQLite
 ```
 
-- **Repository:** owns `#tasks` and `#nextId`; returns copies so callers cannot mutate storage accidentally.
-- **Service:** validates inputs, handles missing tasks, and coordinates repository operations.
-- **Controller:** translates HTTP input/output; never edits stored tasks directly.
-- **Routes:** map paths to controller methods without business logic.
-- **Bootstrap:** `createApp()` wires fresh dependencies; `server.js` alone starts the listener.
-- **Errors:** `AppError` carries expected HTTP status codes. Unexpected exceptions are logged server-side and return a generic JSON 500 without a stack trace.
-
-Constructor injection and composition keep the layers testable without base classes, factories, ORMs, or simulated interfaces. Express 5 forwards synchronous handler exceptions to the error middleware.
-
-### Request lifecycle
-
-```mermaid
-sequenceDiagram
-    participant Client
-    participant Controller as TaskController
-    participant Service as TaskService
-    participant Repository as TaskRepository
-    Client->>Controller: POST /tasks with title
-    Controller->>Service: createTask(body)
-    Service->>Service: Validate object and trim title
-    alt Valid title
-        Service->>Repository: create(title)
-        Repository->>Repository: Allocate ID and store done=false
-        Repository-->>Service: Task copy
-        Service-->>Controller: Task
-        Controller-->>Client: 201 JSON + Location header
-    else Invalid title
-        Service-->>Controller: Throw AppError
-        Note over Controller,Client: Central middleware returns 400 JSON
-    end
-```
-
-### Project layout
+Controllers, validation, routes, and error handling retain their previous contracts. The repository uses prepared SQL statements, converts stored `0`/`1` to JSON `false`/`true`, and implements filtering, search, pagination, and statistics in SQL.
 
 ```text
 src/
-├── app.js                     # Application factory and dependency wiring
-├── server.js                  # Listener, PORT and shutdown handling
-├── controllers/TaskController.js
-├── services/TaskService.js
-├── repositories/TaskRepository.js
-├── routes/
-│   ├── index.js               # Root metadata and health
-│   ├── taskRoutes.js          # Required CRUD routes
-│   └── utilityRoutes.js       # Optional statistics and reset
-├── validators/taskValidator.js
-├── errors/AppError.js
-├── middleware/
-│   ├── errorHandler.js
-│   └── notFoundHandler.js
-├── data/seedTasks.js
-└── docs/openapi.json
-tests/tasks.test.js
+  config/database.js              # Connection, schema, transactional initialization
+  controllers/TaskController.js
+  data/seedTasks.js                # Node's three initial tasks
+  docs/openapi.json
+  errors/AppError.js
+  middleware/{errorHandler,notFoundHandler}.js
+  repositories/TaskRepository.js
+  routes/{index,taskRoutes,utilityRoutes}.js
+  services/TaskService.js
+  validators/taskValidator.js
+  app.js                          # Factory; no listener on import
+  server.js                       # Listener and shutdown
+python/
+  init_db.py
+  seed.py
+  explore_sql.py
+data/tasks.db                     # Runtime data, ignored by Git
+tests/
 screenshots/swagger-ui.png
 ```
 
-## Endpoint reference
+### Database
 
-| Method | Path            | Behavior                                       | Status codes       |
-| ------ | --------------- | ---------------------------------------------- | ------------------ |
-| GET    | `/`             | API name, version and links                    | 200                |
-| GET    | `/health`       | `{ "status": "ok" }`                           | 200                |
-| GET    | `/tasks`        | Task array; optional filters and pagination    | 200, 400           |
-| GET    | `/tasks/:id`    | Retrieve one task                              | 200, 400, 404      |
-| POST   | `/tasks`        | Create with a required title                   | 201, 400, 413      |
-| PUT    | `/tasks/:id`    | Update title, done, or both                    | 200, 400, 404, 413 |
-| DELETE | `/tasks/:id`    | Delete; empty response body                    | 204, 400, 404      |
-| GET    | `/stats`        | Unfiltered total, completed and pending counts | 200                |
-| POST   | `/reset`        | Restore original seed tasks                    | 200                |
-| GET    | `/docs`         | Swagger UI; redirects to `/docs/`              | 301, then 200      |
-| GET    | `/openapi.json` | OpenAPI document                               | 200                |
+```sql
+CREATE TABLE IF NOT EXISTS tasks (
+    id INTEGER PRIMARY KEY,
+    title TEXT NOT NULL,
+    done INTEGER NOT NULL DEFAULT 0 CHECK (done IN (0, 1))
+);
+```
 
-Unknown routes return JSON 404. Unexpected errors return JSON 500. Malformed JSON returns 400; parsed JSON bodies over 16kb return 413.
+An auxiliary `task_metadata` table stores `next_id`. This is both an initialization marker and a durable ID high-water mark, preserving the original API's non-reuse behavior without changing the required `tasks` schema. Automatic seeds are inserted only when the tasks table is first created. Existing tasks tables, even empty ones, are adopted without seeding. Explicit `/reset` is separate from automatic initialization.
 
-### Task contract
+Both runtimes use `BEGIN IMMEDIATE` transactions for initialization, a five-second busy timeout, foreign keys, and WAL journal mode. Competing initializers serialize, then recheck the marker under the writer lock. Schema creation and seeds commit atomically. Node never launches Python during startup. Keep the database on a local filesystem; WAL is not intended for network filesystem sharing.
+
+All user-provided values are bound parameters. SQL column and clause choices come only from fixed application code. Search escapes `%`, `_`, and `\` to preserve literal substring semantics. SQLite's built-in `LOWER`/`LIKE` is ASCII-case-insensitive, not full Unicode case folding.
+
+`tasks.db`, `tasks.db-wal`, and `tasks.db-shm` are ignored. Do not remove WAL sidecars from a running database or copy only the main file while writes are active; use SQLite's backup facilities.
+
+## API contracts
+
+| Method | Path            | Behavior                           | Status codes       |
+| ------ | --------------- | ---------------------------------- | ------------------ |
+| GET    | `/`             | API metadata                       | 200                |
+| GET    | `/health`       | `{ "status": "ok" }`               | 200                |
+| GET    | `/tasks`        | Task array; filters and pagination | 200, 400           |
+| GET    | `/tasks/:id`    | One task                           | 200, 400, 404      |
+| POST   | `/tasks`        | Create; `Location` header          | 201, 400, 413      |
+| PUT    | `/tasks/:id`    | Partial title/done update          | 200, 400, 404, 413 |
+| DELETE | `/tasks/:id`    | Delete; empty body                 | 204, 400, 404      |
+| GET    | `/stats`        | Total/completed/pending counts     | 200                |
+| POST   | `/reset`        | Restore original seeds             | 200                |
+| GET    | `/docs`         | Swagger UI                         | 301, then 200      |
+| GET    | `/openapi.json` | API specification                  | 200                |
 
 ```json
 { "id": 1, "title": "Complete FlyRank assignment", "done": false }
 ```
 
-- IDs are positive safe integers generated by the server. Path IDs reject leading zeros, decimals, signs, suffixes, and unsafe integers.
-- Titles must be strings containing non-whitespace text. Surrounding whitespace is removed.
-- POST always initializes `done` to `false`, even if the client supplies another value.
-- PUT intentionally supports **partial updates**, as required by the assignment, although PATCH would normally describe that behavior. Omitted properties are preserved.
-- PUT requires at least one recognized field; `done` must be a JSON Boolean. Unknown body fields are ignored and cannot override `id`.
-- Invalid updates are rejected before any mutation. For valid IDs, invalid update bodies take precedence over a missing-task check.
-- Send bodies with `Content-Type: application/json`.
+- IDs are positive safe integers; leading zeros, signs, decimals, suffixes, and unsafe integers return 400.
+- Titles must be nonempty strings after trimming. POST always sets `done: false`, regardless of supplied `done`.
+- PUT preserves omitted fields and requires at least one recognized field. `done` must be a JSON Boolean. Unknown fields are ignored; `id` cannot be overwritten.
+- Invalid updates are rejected before mutation. Invalid update bodies take precedence over missing-task errors for valid IDs.
+- Error shape: `{ "error": "Task 99 not found" }`. Unknown routes return JSON 404; unexpected errors return generic JSON 500. Malformed JSON returns 400 and bodies over 16kb return 413.
 
-All error responses use one shape:
-
-```json
-{ "error": "Task 99 not found" }
-```
-
-## Manual CRUD walkthrough
-
-On a fresh process the three sample tasks have IDs 1–3. The first created task has ID 4. If you already created tasks, use the ID returned by POST instead.
+### CRUD walkthrough
 
 ```bash
-# Read
 curl -i http://localhost:3000/tasks
 curl -i http://localhost:3000/tasks/1
-
-# Create
 curl -i -X POST http://localhost:3000/tasks \
-  -H 'Content-Type: application/json' \
-  -d '{"title":"Buy milk"}'
-
-# Update
+  -H 'Content-Type: application/json' -d '{"title":"Buy milk"}'
+# Use the ID returned by POST; 4 applies only to a freshly initialized database.
 curl -i -X PUT http://localhost:3000/tasks/4 \
-  -H 'Content-Type: application/json' \
-  -d '{"title":"Buy groceries","done":true}'
-
-# Delete, then confirm 404
+  -H 'Content-Type: application/json' -d '{"title":"Buy groceries","done":true}'
 curl -i -X DELETE http://localhost:3000/tasks/4
 curl -i http://localhost:3000/tasks/4
-
-# Validation error
-curl -i -X POST http://localhost:3000/tasks \
-  -H 'Content-Type: application/json' \
-  -d '{"title":"   "}'
 ```
 
-### Actual captured curl response
-
-Captured from the running application with the POST command above, not an illustrative response:
-
-```http
-HTTP/1.1 201 Created
-Location: /tasks/4
-Content-Type: application/json; charset=utf-8
-Content-Length: 40
-ETag: W/"28-PpSBYV7i68cXyGc7AhjVpkZkY5Q"
-Date: Sun, 25 Oct 2026 11:20:02 GMT
-Connection: keep-alive
-Keep-Alive: timeout=5
-
-{"id":4,"title":"Buy milk","done":false}
-```
-
-Dates, generated IDs, and ETags vary with the request and process state.
-
-## Swagger UI
-
-![TaskFlow interactive Swagger UI](screenshots/swagger-ui.png)
-
-The image is a real browser capture of `/docs/`. Mermaid diagrams render directly on GitHub; no frontend or Mermaid runtime dependency is needed in the API.
-
-To evaluate without curl, expand each operation and select **Try it out**, enter its values, then select **Execute**:
-
-1. POST `/tasks` with a title; record the returned ID.
-2. GET `/tasks`; confirm the new task exists.
-3. PUT `/tasks/{id}` with a new title and `done: true`.
-4. GET `/tasks/{id}`; verify both fields.
-5. DELETE `/tasks/{id}`; expect 204 with no body.
-6. GET `/tasks/{id}` again; expect JSON 404.
-
-This sequence was also verified through Swagger UI in headless Chromium using actual Try it out / Execute controls.
-
-## Optional enhancements
-
-### Filtering, search and pagination
+### Filtering, search, pagination, statistics
 
 ```bash
-curl -i 'http://localhost:3000/tasks?done=false'
-curl -i 'http://localhost:3000/tasks?search=swagger'
-curl -i 'http://localhost:3000/tasks?done=false&search=assignment&limit=2&offset=0'
+curl 'http://localhost:3000/tasks?done=false&search=assignment&limit=2&offset=0'
+curl http://localhost:3000/stats
 ```
 
-| Parameter | Rules                                                        |
-| --------- | ------------------------------------------------------------ |
-| `done`    | Exact `true` or `false`                                      |
-| `search`  | Trimmed, case-insensitive title substring; empty matches all |
-| `limit`   | Positive safe integer; omitted means no limit                |
-| `offset`  | Non-negative safe integer; defaults to 0                     |
+`done` accepts exactly `true` or `false`. `search` is a trimmed case-insensitive substring (empty matches all). `limit` is a positive safe integer; omitted means unlimited. `offset` is a non-negative safe integer, default 0. Unknown or repeated parameters return 400. Filtering precedes pagination; results retain ID/insertion order and return a JSON array. Sorting is demonstrated in the SQL utility, not added to the HTTP contract.
 
-Filtering and searching combine with AND and run **before pagination**. Results retain insertion order and the required JSON-array response. Offsets beyond the result set return `[]`. Unknown or repeated parameters return 400; numeric values cannot contain signs, decimals, or leading zeros.
+Statistics use SQL `COUNT(*)` across all tasks: initially `{ "total": 3, "completed": 1, "pending": 2 }`.
 
-### Statistics
+**`POST /reset` deletes current tasks and restores the original three seeds.** It is an unauthenticated local-development helper, not a production administration endpoint. Generated IDs are not recycled, even after reset or restart; seed IDs are intentionally restored.
+
+## Python utilities and SQL exercises
 
 ```bash
-curl -i http://localhost:3000/stats
+python3 python/init_db.py
+python3 python/seed.py
+python3 python/explore_sql.py
 ```
 
-Fresh-process response: `{ "total": 3, "completed": 1, "pending": 2 }`. Counts cover the entire current collection, not a filtered page.
+Initialization and seeding are idempotent; neither restores an existing empty task table. `init_db.py --database /absolute/path/tasks.db` overrides the file. Other utilities accept `DATABASE_PATH`. Exploration opens the file read-only and prints SQL plus actual results for five exercises:
 
-### Reset
+1. List all tasks: `SELECT id, title, done FROM tasks ORDER BY id`.
+2. Filter pending tasks: `SELECT id, title, done FROM tasks WHERE done = ?` with `0`.
+3. Search titles: `SELECT id, title, done FROM tasks WHERE title LIKE ?` with `%Swagger%`.
+4. Sort alphabetically: `SELECT id, title, done FROM tasks ORDER BY title`.
+5. Count total, completed, and pending tasks with `COUNT(*)` and conditional counts.
 
-**`POST /reset` discards the current collection and restores the three original sample tasks.** It is an unauthenticated local-development helper, not a production administration endpoint.
+The revised PRD does not enumerate its five required assignment queries. These five cover the stated operations; compare them with the original assignment before submission.
+
+### Native inspection
 
 ```bash
-curl -i -X POST http://localhost:3000/reset
+sqlite3 data/tasks.db
 ```
 
-Returns the restored task array. Reset preserves the next generated ID, so previously generated IDs are never recycled during the lifetime of the application. Original seed IDs are restored intentionally. Restarting the process resets all state, including the ID counter.
+```sql
+.headers on
+.mode column
+.tables
+SELECT * FROM tasks;
+.quit
+```
 
-## Tests and quality checks
+Opening a nonexistent file with the CLI creates an empty file, not the application schema. Initialize first for inspection.
+
+## Screenshots
+
+![Swagger UI](screenshots/swagger-ui.png)
+
+The existing Swagger capture is retained. Capture the native SQLite CLI after running the inspection commands and save a genuine screenshot as `screenshots/sqlite-database.png`; this artifact is not generated by the API or tests.
+
+## Tests and checks
 
 ```bash
 npm test
@@ -252,35 +176,28 @@ npm run lint
 npm run format:check
 ```
 
-The suite covers all **TC-01–TC-18** cases plus query composition, malformed IDs, invalid body shapes, atomic updates, immutable IDs, statistics, reset, application isolation, repository copies, malformed JSON, request size limits, unknown routes, and documentation availability.
+HTTP regressions cover TC-01–TC-18, filtering, pagination, validation, atomic updates, statistics, reset, errors, and documentation. Each HTTP fixture explicitly uses an isolated in-memory SQLite database and closes it afterward. Disk tests cover restart persistence, empty-table persistence, durable IDs, schema constraints, configuration, SQL injection/literal wildcard handling, and concurrent Python/Node initialization. Python 3 is required for cross-runtime tests.
 
-Each HTTP test creates a fresh application and repository, listens on an OS-assigned local port, and closes its server afterward. No third-party HTTP testing framework is needed. Importing `createApp()` does not open a port. Browser tooling used to capture the screenshot is not a project or runtime dependency.
+`createApp()` defaults to persistent storage; callers own `app.locals.database` and must close it after stopping their server. Merely importing the module does not open a database or listener.
 
-## Storage and security boundaries
+## Assignment stages and publishing
 
-- Storage is a JavaScript `Map` in one process. **Every restart loses all changes.** Nothing is persisted to disk or a database.
-- Instances do not share data; there are no transactions across processes or durable guarantees.
-- There is no authentication, authorization, rate limiting, or production deployment configuration. Any client that can reach the server can modify tasks and invoke reset. Use only in a trusted local evaluation environment; do not expose it publicly as-is.
-- Validation, the small JSON body limit, generic unexpected-error responses, and disabled `X-Powered-By` header provide basic request hygiene, not a production security guarantee.
+- Stage 0: automatic transactional database creation and one-time seeds.
+- Stage 1: SQL SELECT for list and individual reads.
+- Stage 2: prepared INSERT, preserving validation and HTTP 201.
+- Stage 3: prepared UPDATE/DELETE, preserving 404 behavior.
+- Stage 4: execute the five SQL exercises above; confirm against the original assignment.
+- Stage 5: run regression checks, capture the SQLite screenshot, review changes, and publish.
 
-## Implementation stages and provenance
-
-The local Git history records incremental Stages 0–6: server setup; root/health; read layers; create; update/delete; Swagger; documentation. Optional enhancements and automated tests follow in a separate commit. Inspect with:
-
-```bash
-git log --oneline --reverse
-```
-
-**This implementation was AI-assisted.** Stage-based commits document development increments; they do not establish compliance with FlyRank's requirement that Stages 0–6 be hand-built. Review the assignment's AI policy and implement the required work yourself where that policy requires it. No AI Rematch or comparison findings are claimed: there is no independent hand-built baseline to compare against, and duplicating this implementation would not provide an honest comparison.
-
-### Publish to GitHub
-
-Publishing is not automatic. Create an empty **public** repository in your GitHub account, then substitute its URL:
+Publishing requires review and GitHub credentials. No commit or push is performed automatically:
 
 ```bash
-git branch -M main
-git remote add origin https://github.com/YOUR_USERNAME/taskflow-api.git
-git push -u origin main
+git status
+git remote -v
+# After reviewing and committing the intended source/documentation changes:
+git push -u origin HEAD
 ```
 
-The local stage commits use a clearly labeled builder identity. Configure your own Git author before making subsequent commits. Public publishing, your own work under the assignment's hand-built rules, and submission review remain your responsibility.
+Do not commit database files or credentials. There is no authentication, authorization, rate limiting, or production deployment configuration; any reachable client can modify tasks or invoke reset. Keep this API in a trusted local environment.
+
+**This implementation is AI-assisted.** Prior stage commits do not establish compliance with any hand-built-work requirement. Review FlyRank's AI policy and complete any required independent work yourself. No independent comparison baseline is claimed.
