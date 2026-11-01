@@ -3,7 +3,7 @@
   "info": {
     "title": "TaskFlow API",
     "version": "1.0.0",
-    "description": "In-memory task management. PUT accepts partial updates. Data is lost on restart."
+    "description": "Postgres-backed task management. PUT accepts partial updates. Container data persists in a named database volume."
   },
   "servers": [{ "url": "/" }],
   "paths": {

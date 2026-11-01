@@ -3,33 +3,33 @@ export class TaskController {
     this.taskService = taskService;
   }
 
-  getAll = (req, res) => {
-    res.json(this.taskService.getAllTasks(req.query));
+  getAll = async (req, res) => {
+    res.json(await this.taskService.getAllTasks(req.query));
   };
 
-  getById = (req, res) => {
-    res.json(this.taskService.getTaskById(req.params.id));
+  getById = async (req, res) => {
+    res.json(await this.taskService.getTaskById(req.params.id));
   };
 
-  create = (req, res) => {
-    const task = this.taskService.createTask(req.body);
+  create = async (req, res) => {
+    const task = await this.taskService.createTask(req.body);
     res.location(`/tasks/${task.id}`).status(201).json(task);
   };
 
-  update = (req, res) => {
-    res.json(this.taskService.updateTask(req.params.id, req.body));
+  update = async (req, res) => {
+    res.json(await this.taskService.updateTask(req.params.id, req.body));
   };
 
-  delete = (req, res) => {
-    this.taskService.deleteTask(req.params.id);
+  delete = async (req, res) => {
+    await this.taskService.deleteTask(req.params.id);
     res.status(204).end();
   };
 
-  getStatistics = (_req, res) => {
-    res.json(this.taskService.getStatistics());
+  getStatistics = async (_req, res) => {
+    res.json(await this.taskService.getStatistics());
   };
 
-  reset = (_req, res) => {
-    res.json(this.taskService.resetTasks());
+  reset = async (_req, res) => {
+    res.json(await this.taskService.resetTasks());
   };
 }

@@ -1,4 +1,4 @@
-import Database from 'better-sqlite3';
+import { createRequire } from 'node:module';
 import { mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -12,6 +12,7 @@ export function openDatabase({
   databasePath = process.env.DATABASE_PATH || defaultPath,
   initialTasks = seedTasks,
 } = {}) {
+  const Database = createRequire(import.meta.url)('better-sqlite3');
   if (databasePath !== ':memory:')
     mkdirSync(dirname(resolve(databasePath)), { recursive: true });
   const db = new Database(databasePath, { timeout: 5000 });
