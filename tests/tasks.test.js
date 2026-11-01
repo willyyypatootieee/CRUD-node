@@ -3,11 +3,21 @@ import { once } from 'node:events';
 import { test } from 'node:test';
 import { createApp } from '../src/app.js';
 import { TaskRepository } from '../src/repositories/TaskRepository.js';
+import { openDatabase } from '../src/config/database.js';
 
 async function fixture(t, options) {
-  const server = createApp(options).listen(0, '127.0.0.1');
+  const app = createApp({ databasePath: ':memory:', ...options });
+  const server = app.listen(0, '127.0.0.1');
   await once(server, 'listening');
-  t.after(() => new Promise((resolve) => server.close(resolve)));
+  t.after(
+    () =>
+      new Promise((resolve) =>
+        server.close(() => {
+          app.locals.database.close();
+          resolve();
+        }),
+      ),
+  );
   const base = `http://127.0.0.1:${server.address().port}`;
   return async (path, method = 'GET', body) => {
     const response = await fetch(`${base}${path}`, {
@@ -232,7 +242,12 @@ test('fresh applications and repository copies isolate mutable state', async (t)
   await first('/tasks/1', 'DELETE');
   assert.equal((await second('/tasks/1')).status, 200);
   const initial = [{ id: 10, title: 'Original', done: false }];
-  const repository = new TaskRepository(initial);
+  const database = openDatabase({
+    databasePath: ':memory:',
+    initialTasks: initial,
+  });
+  t.after(() => database.close());
+  const repository = new TaskRepository(database);
   initial[0].title = 'External';
   repository.findAll()[0].title = 'Mutated';
   repository.findById(10).done = true;
@@ -246,9 +261,18 @@ test('fresh applications and repository copies isolate mutable state', async (t)
 });
 
 test('malformed JSON, oversized bodies, unknown routes and documentation', async (t) => {
-  const server = createApp().listen(0, '127.0.0.1');
+  const app = createApp({ databasePath: ':memory:' });
+  const server = app.listen(0, '127.0.0.1');
   await once(server, 'listening');
-  t.after(() => new Promise((resolve) => server.close(resolve)));
+  t.after(
+    () =>
+      new Promise((resolve) =>
+        server.close(() => {
+          app.locals.database.close();
+          resolve();
+        }),
+      ),
+  );
   const base = `http://127.0.0.1:${server.address().port}`;
   for (const [body, status] of [
     ['{"title":', 400],
