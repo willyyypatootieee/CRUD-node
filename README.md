@@ -148,8 +148,3 @@ TEST_DATABASE_URL='postgresql://USER:PASSWORD@127.0.0.1:5432/tasks' npm test
 
 For host-run `npm start` / `npm run dev`, set `DATABASE_URL` to a host-reachable address in `.env`. Compose itself needs no npm installation on the host.
 
-## Submission status and scope
-
-Implementation is AI-assisted. Local A3 commits separate configuration, schema, repository, async wiring, tests, and documentation; staged commits are not evidence of independent hand-built work. Git commits use the existing system identity. No automatic GitHub push is performed.
-
-Pending user-run checks: Docker build/start, real Postgres integration suite, persistence script, DB screenshot, actual resource measurements, and public submission review. Redis and EXPLAIN ANALYZE stretch work are deferred; no invented benchmark results or AI comparison findings are included.
