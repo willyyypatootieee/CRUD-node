@@ -23,7 +23,9 @@ services:
     build: .
     environment:
       NODE_ENV: production
-      DATABASE_URL: ${DATABASE_URL:?Set DATABASE_URL in .env}
+      DATABASE_URL: postgresql://${POSTGRES_USER:?Set POSTGRES_USER in .env}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@db:5432/${POSTGRES_DB:?Set POSTGRES_DB in .env}
+      SUPABASE_URL: ${SUPABASE_URL:?Set SUPABASE_URL in .env}
+      SUPABASE_KEY: ${SUPABASE_KEY:?Set SUPABASE_KEY in .env}
       PORT: 3000
     ports:
       - '127.0.0.1:${PORT:-3000}:3000'
