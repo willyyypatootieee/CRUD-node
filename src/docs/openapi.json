@@ -2,23 +2,33 @@
   "openapi": "3.0.3",
   "info": {
     "title": "TaskFlow API",
-    "version": "1.0.0",
-    "description": "Postgres-backed task management. PUT accepts partial updates. Container data persists in a named database volume."
+    "version": "1.1.0",
+    "description": "Task management plus Supabase-backed authentication. Protected routes require a Supabase access token in Authorization: Bearer <token>."
   },
-  "servers": [{ "url": "/" }],
+  "servers": [
+    {
+      "url": "/"
+    }
+  ],
   "paths": {
     "/": {
       "get": {
         "summary": "API metadata",
         "responses": {
-          "200": { "description": "Name, version and discovery links" }
+          "200": {
+            "description": "Name, version and discovery links"
+          }
         }
       }
     },
     "/health": {
       "get": {
         "summary": "Health check",
-        "responses": { "200": { "description": "API is healthy" } }
+        "responses": {
+          "200": {
+            "description": "API is healthy"
+          }
+        }
       }
     },
     "/tasks": {
@@ -26,11 +36,19 @@
         "summary": "List, filter, search and paginate tasks",
         "description": "Filter and case-insensitive title search run before pagination. Results remain an array in insertion order. Unknown or repeated parameters return 400.",
         "parameters": [
-          { "name": "done", "in": "query", "schema": { "type": "boolean" } },
+          {
+            "name": "done",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
           {
             "name": "search",
             "in": "query",
-            "schema": { "type": "string" },
+            "schema": {
+              "type": "string"
+            },
             "description": "Trimmed case-insensitive substring; empty matches all"
           },
           {
@@ -60,12 +78,16 @@
               "application/json": {
                 "schema": {
                   "type": "array",
-                  "items": { "$ref": "#/components/schemas/Task" }
+                  "items": {
+                    "$ref": "#/components/schemas/Task"
+                  }
                 }
               }
             }
           },
-          "400": { "$ref": "#/components/responses/BadRequest" }
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          }
         }
       },
       "post": {
@@ -75,8 +97,12 @@
           "required": true,
           "content": {
             "application/json": {
-              "schema": { "$ref": "#/components/schemas/CreateTask" },
-              "example": { "title": "Buy milk" }
+              "schema": {
+                "$ref": "#/components/schemas/CreateTask"
+              },
+              "example": {
+                "title": "Buy milk"
+              }
             }
           }
         },
@@ -85,29 +111,47 @@
             "description": "Created",
             "headers": {
               "Location": {
-                "schema": { "type": "string" },
+                "schema": {
+                  "type": "string"
+                },
                 "description": "Created task path"
               }
             },
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Task" }
+                "schema": {
+                  "$ref": "#/components/schemas/Task"
+                }
               }
             }
           },
-          "400": { "$ref": "#/components/responses/BadRequest" },
-          "413": { "$ref": "#/components/responses/TooLarge" }
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "413": {
+            "$ref": "#/components/responses/TooLarge"
+          }
         }
       }
     },
     "/tasks/{id}": {
-      "parameters": [{ "$ref": "#/components/parameters/TaskId" }],
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/TaskId"
+        }
+      ],
       "get": {
         "summary": "Get one task",
         "responses": {
-          "200": { "$ref": "#/components/responses/Task" },
-          "400": { "$ref": "#/components/responses/BadRequest" },
-          "404": { "$ref": "#/components/responses/NotFound" }
+          "200": {
+            "$ref": "#/components/responses/Task"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
         }
       },
       "put": {
@@ -117,24 +161,43 @@
           "required": true,
           "content": {
             "application/json": {
-              "schema": { "$ref": "#/components/schemas/UpdateTask" },
-              "example": { "title": "Buy groceries", "done": true }
+              "schema": {
+                "$ref": "#/components/schemas/UpdateTask"
+              },
+              "example": {
+                "title": "Buy groceries",
+                "done": true
+              }
             }
           }
         },
         "responses": {
-          "200": { "$ref": "#/components/responses/Task" },
-          "400": { "$ref": "#/components/responses/BadRequest" },
-          "404": { "$ref": "#/components/responses/NotFound" },
-          "413": { "$ref": "#/components/responses/TooLarge" }
+          "200": {
+            "$ref": "#/components/responses/Task"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "413": {
+            "$ref": "#/components/responses/TooLarge"
+          }
         }
       },
       "delete": {
         "summary": "Delete a task",
         "responses": {
-          "204": { "description": "Deleted; empty body" },
-          "400": { "$ref": "#/components/responses/BadRequest" },
-          "404": { "$ref": "#/components/responses/NotFound" }
+          "204": {
+            "description": "Deleted; empty body"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
         }
       }
     },
@@ -150,12 +213,22 @@
                   "type": "object",
                   "required": ["total", "completed", "pending"],
                   "properties": {
-                    "total": { "type": "integer" },
-                    "completed": { "type": "integer" },
-                    "pending": { "type": "integer" }
+                    "total": {
+                      "type": "integer"
+                    },
+                    "completed": {
+                      "type": "integer"
+                    },
+                    "pending": {
+                      "type": "integer"
+                    }
                   }
                 },
-                "example": { "total": 3, "completed": 1, "pending": 2 }
+                "example": {
+                  "total": 3,
+                  "completed": 1,
+                  "pending": 2
+                }
               }
             }
           }
@@ -173,7 +246,9 @@
               "application/json": {
                 "schema": {
                   "type": "array",
-                  "items": { "$ref": "#/components/schemas/Task" }
+                  "items": {
+                    "$ref": "#/components/schemas/Task"
+                  }
                 }
               }
             }
@@ -185,14 +260,218 @@
       "get": {
         "summary": "Interactive Swagger UI",
         "responses": {
-          "200": { "description": "Swagger UI (redirects to /docs/)" }
+          "200": {
+            "description": "Swagger UI (redirects to /docs/)"
+          }
         }
       }
     },
     "/openapi.json": {
       "get": {
         "summary": "Download the API specification",
-        "responses": { "200": { "description": "OpenAPI 3 JSON document" } }
+        "responses": {
+          "200": {
+            "description": "OpenAPI 3 JSON document"
+          }
+        }
+      }
+    },
+    "/auth/signup": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Create a Supabase user account",
+        "description": "Email and password are sent to Supabase Auth. The backend never stores the password.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Credentials"
+              },
+              "example": {
+                "email": "test@example.com",
+                "password": "password123"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "User created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["user"],
+                  "properties": {
+                    "user": {
+                      "$ref": "#/components/schemas/AuthUser"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          }
+        }
+      }
+    },
+    "/auth/login": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Authenticate and receive a JWT",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Credentials"
+              },
+              "example": {
+                "email": "test@example.com",
+                "password": "password123"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Access and refresh tokens",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthSession"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/InvalidCredentials"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          }
+        }
+      }
+    },
+    "/auth/logout": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Revoke the current Supabase session",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Session revoked; empty body"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/public/info": {
+      "get": {
+        "tags": ["Public"],
+        "summary": "Read public information",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Public message",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": {
+                  "message": "Welcome stranger! This info is public."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/protected/profile": {
+      "get": {
+        "tags": ["Protected"],
+        "summary": "Read the authenticated user profile",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Authenticated user metadata",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["user"],
+                  "properties": {
+                    "user": {
+                      "$ref": "#/components/schemas/AuthUser"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/protected/dashboard": {
+      "get": {
+        "tags": ["Protected"],
+        "summary": "Second protected route using the shared middleware",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Dashboard data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    },
+                    "user": {
+                      "$ref": "#/components/schemas/AuthUser"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
       }
     }
   },
@@ -216,9 +495,19 @@
         "type": "object",
         "required": ["id", "title", "done"],
         "properties": {
-          "id": { "type": "integer", "minimum": 1, "readOnly": true },
-          "title": { "type": "string", "minLength": 1 },
-          "done": { "type": "boolean", "default": false }
+          "id": {
+            "type": "integer",
+            "minimum": 1,
+            "readOnly": true
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1
+          },
+          "done": {
+            "type": "boolean",
+            "default": false
+          }
         }
       },
       "CreateTask": {
@@ -235,16 +524,99 @@
       },
       "UpdateTask": {
         "type": "object",
-        "anyOf": [{ "required": ["title"] }, { "required": ["done"] }],
+        "anyOf": [
+          {
+            "required": ["title"]
+          },
+          {
+            "required": ["done"]
+          }
+        ],
         "properties": {
-          "title": { "type": "string", "minLength": 1, "pattern": "\\S" },
-          "done": { "type": "boolean" }
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S"
+          },
+          "done": {
+            "type": "boolean"
+          }
         }
       },
       "Error": {
         "type": "object",
         "required": ["error"],
-        "properties": { "error": { "type": "string" } }
+        "properties": {
+          "error": {
+            "type": "string"
+          }
+        }
+      },
+      "Credentials": {
+        "type": "object",
+        "required": ["email", "password"],
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "password": {
+            "type": "string",
+            "minLength": 1,
+            "format": "password"
+          }
+        }
+      },
+      "AuthUser": {
+        "type": "object",
+        "required": ["id", "email"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "email_confirmed_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "last_sign_in_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        }
+      },
+      "AuthSession": {
+        "type": "object",
+        "required": ["access_token", "refresh_token", "token_type", "user"],
+        "properties": {
+          "access_token": {
+            "type": "string",
+            "description": "JWT to send as Authorization: Bearer <token>"
+          },
+          "refresh_token": {
+            "type": "string"
+          },
+          "token_type": {
+            "type": "string",
+            "example": "bearer"
+          },
+          "expires_in": {
+            "type": "integer"
+          },
+          "user": {
+            "$ref": "#/components/schemas/AuthUser"
+          }
+        }
       }
     },
     "responses": {
@@ -252,7 +624,9 @@
         "description": "Task",
         "content": {
           "application/json": {
-            "schema": { "$ref": "#/components/schemas/Task" }
+            "schema": {
+              "$ref": "#/components/schemas/Task"
+            }
           }
         }
       },
@@ -260,8 +634,12 @@
         "description": "Invalid body, query, ID, or malformed JSON",
         "content": {
           "application/json": {
-            "schema": { "$ref": "#/components/schemas/Error" },
-            "example": { "error": "Title is required" }
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "example": {
+              "error": "Title is required"
+            }
           }
         }
       },
@@ -269,8 +647,12 @@
         "description": "Task does not exist",
         "content": {
           "application/json": {
-            "schema": { "$ref": "#/components/schemas/Error" },
-            "example": { "error": "Task 99 not found" }
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "example": {
+              "error": "Task 99 not found"
+            }
           }
         }
       },
@@ -278,10 +660,86 @@
         "description": "JSON body exceeds 16kb",
         "content": {
           "application/json": {
-            "schema": { "$ref": "#/components/schemas/Error" }
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      },
+      "Unauthorized": {
+        "description": "Missing, malformed, invalid or expired access token",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "examples": {
+              "missing": {
+                "value": {
+                  "error": "Access token required"
+                }
+              },
+              "invalid": {
+                "value": {
+                  "error": "Invalid or expired token"
+                }
+              }
+            }
+          }
+        }
+      },
+      "InvalidCredentials": {
+        "description": "Wrong email or password",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "example": {
+              "error": "Invalid login credentials"
+            }
+          }
+        }
+      },
+      "TooManyRequests": {
+        "description": "Supabase rate limit",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "example": {
+              "error": "Too many authentication attempts"
+            }
           }
         }
       }
+    },
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "Supabase access token. Paste only the token; Swagger adds the Bearer prefix."
+      }
     }
-  }
+  },
+  "tags": [
+    {
+      "name": "Auth",
+      "description": "Supabase sign up, login and logout"
+    },
+    {
+      "name": "Public",
+      "description": "Unprotected information"
+    },
+    {
+      "name": "Protected",
+      "description": "Bearer-token protected routes"
+    },
+    {
+      "name": "Tasks",
+      "description": "Task CRUD"
+    }
+  ]
 }
