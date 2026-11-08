@@ -11,6 +11,13 @@ import { errorHandler } from './middleware/errorHandler.js';
 import { notFoundHandler } from './middleware/notFoundHandler.js';
 import { createUtilityRouter } from './routes/utilityRoutes.js';
 import { openDatabase } from './config/database.js';
+import { AuthController } from './controllers/AuthController.js';
+import { createAuthenticate } from './middleware/authenticate.js';
+import {
+  createAuthRouter,
+  createProtectedRouter,
+  createPublicRouter,
+} from './routes/authRoutes.js';
 
 const specification = JSON.parse(
   readFileSync(new URL('./docs/openapi.json', import.meta.url), 'utf8'),
@@ -20,6 +27,7 @@ export function createApp({
   initialTasks = seedTasks,
   databasePath,
   repository,
+  authService,
 } = {}) {
   const app = express();
   app.disable('x-powered-by');
@@ -36,6 +44,13 @@ export function createApp({
   const controller = new TaskController(service);
   app.use('/tasks', createTaskRouter(controller));
   app.use(createUtilityRouter(controller));
+  if (authService) {
+    const authenticate = createAuthenticate(authService);
+    const authController = new AuthController(authService);
+    app.use('/auth', createAuthRouter(authController, authenticate));
+    app.use('/public', createPublicRouter());
+    app.use('/protected', createProtectedRouter(authController, authenticate));
+  }
   app.use(notFoundHandler);
   app.use(errorHandler);
   return app;

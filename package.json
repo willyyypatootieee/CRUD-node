@@ -1,8 +1,8 @@
 {
   "name": "taskflow-api",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "private": true,
-  "description": "Postgres-backed task API with a lightweight Docker Compose stack",
+  "description": "Task API with Supabase authentication and optional Postgres storage",
   "type": "module",
   "engines": {
     "node": ">=22"
@@ -17,6 +17,7 @@
     "format:check": "prettier --check ."
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.119.0",
     "express": "^5.3.0",
     "pg": "^8.23.1",
     "swagger-ui-express": "^5.0.1"

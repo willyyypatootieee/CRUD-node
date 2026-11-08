@@ -5,9 +5,12 @@ export function createRootRouter() {
   router.get('/', (_req, res) => {
     res.json({
       name: 'TaskFlow API',
-      version: '1.0.0',
+      version: '1.1.0',
       docs: '/docs',
       health: '/health',
+      auth: '/auth',
+      public: '/public/info',
+      protected: '/protected/profile',
     });
   });
   router.get('/health', (_req, res) => res.json({ status: 'ok' }));
